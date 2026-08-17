@@ -64,10 +64,22 @@ pipeline {
                         // Run gravity update on every container
                         containerIds.each { containerId ->
                             echo "Updating gravity on container: ${containerId}"
-                            sh """
-                                ${sshPassPipe}SSHPASS="\${SSH_PASS}" sshpass -e ssh ${sshOpts} "\${SSH_USER}@${params.HOST}" \
-                                    '${dockerCmd} exec ${containerId} pihole -g'
-                            """
+
+                            def output = sh(
+                                script: """
+                                    ${sshPassPipe}SSHPASS="\${SSH_PASS}" sshpass -e ssh ${sshOpts} "\${SSH_USER}@${params.HOST}" \
+                                        '${dockerCmd} exec ${containerId} pihole -g'
+                                """,
+                                returnStdout: true
+                            )
+
+                            echo output
+
+                            def gravityLine = output.readLines().find { it.contains('Number of gravity domains') }
+                            
+                            if (gravityLine) {
+                                currentBuild.description += "\n${gravityLine.trim()}"
+                            }
                         }
                     }
                 }
