@@ -61,6 +61,11 @@ pipeline {
                         def containerIds = containerList.split('\n')
                         echo "Found ${containerIds.size()} Pi-hole container(s): ${containerIds.join(', ')}"
 
+                        // state file is keyed per host so concurrent jobs for different hosts don't collide
+                        def stateFile = ".gravity_${params.HOST.replaceAll('[^a-zA-Z0-9._-]', '_')}.txt"
+                        def oldCount = fileExists(stateFile) ? readFile(stateFile).trim() : 'N/A'
+                        def newCount = null
+
                         // Run gravity update on every container
                         containerIds.each { containerId ->
                             echo "Updating gravity on container: ${containerId}"
@@ -75,11 +80,15 @@ pipeline {
 
                             echo output
 
-                            def gravityLine = output.readLines().find { it.contains('Number of gravity domains') }
-                            
-                            if (gravityLine) {
-                                currentBuild.description += "\n${gravityLine.trim()}"
+                            def matcher = output =~ /\((\d+) unique domains\)/
+                            if (matcher) {
+                                newCount = matcher[0][1]
                             }
+                        }
+
+                        if (newCount) {
+                            writeFile file: stateFile, text: newCount
+                            currentBuild.description = "Pi-hole gravity update on ${params.HOST}\n${oldCount} -> ${newCount}"
                         }
                     }
                 }
