@@ -49,7 +49,7 @@ pipeline {
                         def containerList = sh(
                             script: """
                                 ${sshPassPipe}SSHPASS="\${SSH_PASS}" sshpass -e ssh ${sshOpts} "\${SSH_USER}@${params.HOST}" \
-                                    '${dockerCmd} ps --format "{{.ID}} {{.Image}}" | grep "pihole/pihole" | cut -d" " -f1'
+                                    '${dockerCmd} ps --format "{{.ID}} {{.Image}}" | grep "pihole" | cut -d" " -f1'
                             """,
                             returnStdout: true
                         ).trim()
